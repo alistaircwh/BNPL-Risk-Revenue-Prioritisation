@@ -6,7 +6,12 @@ import matplotlib.pyplot as plt
 
 
 def plot_top_merchants_pie(top_n_merchants, level):
-    """Plot a pie chart for the top N merchants by total revenue."""
+    """
+    Plots a pie chart of the top 15 merchants by total revenue for a given revenue level.
+    top_n_merchants: pandas DataFrame with columns 'name' and 'total_revenue', pre-filtered to top 15.
+    level: revenue level label (e.g. 'a') used in the chart title.
+    Displays the chart inline; returns None.
+    """
     colors = [ "#FF6384",  "#36A2EB",  "#FFCE56",  "#4BC0C0",  "#9966FF",  "#FF9F40",  # Orange
     "#C9CBCF",  "#2ECC71",  "#E74C3C",  "#3498DB",  "#9B59B6",  "#F39C12",  "#1ABC9C",  "#34495E",  "#95A5A6"   # Silver
     ]

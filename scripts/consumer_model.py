@@ -4,8 +4,12 @@ import seaborn as sns
 
 
 def feature_visualisation(df_pandas, plots):
-    """ 
-    Create a list of plots for feature visualisation, including bar charts, scatter plot and histogram.
+    """
+    Renders a grid of feature plots for consumer-level data exploration.
+    df_pandas: pandas DataFrame containing the features to visualise.
+    plots: dict mapping plot title → (feature_column, plot_type), where plot_type is
+           one of 'hist', 'count', 'scatter1'–'scatter4' (income proportion scatter plots).
+    Displays the plot inline; returns None.
     """
     fig, axes = plt.subplots(4, 3, figsize=(20, 20))  
     fig.tight_layout(pad=5.0) 

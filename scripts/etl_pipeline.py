@@ -1,20 +1,17 @@
 from pyspark.sql import functions as F, SparkSession, DataFrame
-from pyspark.sql.types import IntegerType, LongType, DoubleType, StringType, DoubleType
+from pyspark.sql.types import IntegerType, LongType, DoubleType, StringType
 from functools import reduce
 from pyspark.sql.functions import col, sum
 import pandas as pd
 import numpy as np
 from sklearn.neighbors import KNeighborsRegressor
 
-from urllib.request import urlretrieve
-import zipfile
-import os
-
-pd.options.mode.chained_assignment = None 
+pd.options.mode.chained_assignment = None
 
 def replace_id(map_df, target_df):
     """
-        Replace all user_id by consumer_id
+    Replaces user_id with consumer_id in target_df by joining against the
+    user-to-consumer mapping table. Returns the joined DataFrame with user_id removed.
     """
     mapped_df = target_df.join(map_df, on="user_id", how="inner")
     mapped_df = mapped_df.drop('user_id')
@@ -32,8 +29,10 @@ def clean_merchant_details(merchant_df):
     print("Before: ")
     get_dataset_count(merchant_df)
 
-    merchant_df = merchant_df.withColumn("tags", F.regexp_replace("tags", r"^[\(\[]|[\)\]]$", "")) # Remove the outermost bracket
-    merchant_df = merchant_df.withColumn("tags", F.regexp_replace("tags", r"[\)\]],\s*[\(\[]", r")\|(")) # Replacing the comma that separate each tuple/list into "|"
+    # Remove outermost brackets from the tag string, e.g. "(tag)" → "tag"
+    merchant_df = merchant_df.withColumn("tags", F.regexp_replace("tags", r"^[\(\[]|[\)\]]$", ""))
+    # Replace the delimiter between tag elements (comma between bracket pairs) with a pipe for splitting
+    merchant_df = merchant_df.withColumn("tags", F.regexp_replace("tags", r"[\)\]],\s*[\(\[]", r")|("))
 
     # Split accordingly 
     merchant_df = merchant_df.withColumn("tags", F.split("tags", "\|")) 
@@ -107,13 +106,13 @@ def ensure_datetime_range(df, start, end):
     """
         This function ensures that a dataframe with a column that specifies datetime is within the desire datetime range
     """
-    inital_entries = df.count()
+    initial_entries = df.count()
     df = df.filter((start <= F.to_date(F.col("order_datetime"))) &
                            (F.to_date(F.col("order_datetime")) <= end))
     
     final_entries = df.count()
-    print(f"Starting entries: {inital_entries} \nFinal entries: {final_entries}")
-    print(f"Net change (%): {round((inital_entries - final_entries)/inital_entries * 100, 2)} ")
+    print(f"Starting entries: {initial_entries} \nFinal entries: {final_entries}")
+    print(f"Net change (%): {round((initial_entries - final_entries)/initial_entries * 100, 2)} ")
     return df
 
 def calculate_missing_values(df):
@@ -138,7 +137,8 @@ def calculate_missing_values(df):
 
 def clean_postcode_lga_mapping(df):
     """
-        This funcion clean the data on mapping postcode to LGA as well as impute missing LGA code using KNN
+    Cleans the postcode-to-LGA mapping table and imputes missing LGA codes using KNN
+    (n_neighbors=1) based on longitude/latitude proximity. Returns the cleaned DataFrame.
     """
 
     cols = ["postcode", "state", "long","lat", "lgacode"]
@@ -212,6 +212,13 @@ def impute_income_metrics(df):
     return df
 
 def process_fp_data(path):
+    """
+    Reads personal fraud victimisation data from an ABS Excel file and returns a merged
+    DataFrame with victimisation rate and relative standard error (RSE) by state.
+    The sheets use a fixed layout: state-level data starts at row 9 (skiprows=8) and
+    the footer rows are excluded (skipfooter=70/67) to isolate the 8 state entries.
+    Returns a DataFrame with columns: state, victimisation_rate, rse_percent.
+    """
     columns_name = {
         "Table 4a" : {'Unnamed: 0': 'state', 'Unnamed: 7': "victimisation_rate"},
         "Table 4b" : {'Unnamed: 0': 'state', 'Unnamed: 7': "rse_percent"}

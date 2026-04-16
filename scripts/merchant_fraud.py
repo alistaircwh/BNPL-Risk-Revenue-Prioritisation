@@ -1,6 +1,5 @@
 from pyspark.sql import functions as F, SparkSession
-from pyspark.sql.types import IntegerType, LongType, DoubleType, StringType, DoubleType
-from pyspark.sql.types import DoubleType, FloatType, DateType, StringType
+from pyspark.sql.types import IntegerType, LongType, DoubleType, FloatType, DateType, StringType
 
 from pyspark.ml.feature import VectorAssembler, StringIndexer, OneHotEncoder, StandardScaler
 from pyspark.ml import Pipeline
@@ -9,6 +8,12 @@ from pyspark.ml.evaluation import RegressionEvaluator
 from pyspark.ml.tuning import ParamGridBuilder, CrossValidator
 
 def assemble_data(data):
+    """
+    Prepares merchant data for modelling: applies log transformation to dollar value,
+    normalises order volume and dollar value features via StandardScaler, encodes
+    categorical fields, and assembles all predictors into a single 'features' vector.
+    Returns (assembled_data, assembler).
+    """
     # Apply log transformation to dollar value
     data = data.withColumn("dollar_value", 
                            F.when(F.col("dollar_value") > 0, F.log(F.col('dollar_value'))).otherwise(None))
@@ -45,8 +50,9 @@ def assemble_data(data):
 
 def unoptimal_model(model, train_data, test_data):
     """
-        This functions train the model with the train_data and make prediction using test_data
-        Model also provide evaluator metrics
+    Trains the given model on train_data and evaluates it against test_data.
+    This is the pre-hyperparameter-tuning baseline — used to establish an initial
+    RMSE and R² before CrossValidator optimisation. Returns the fitted model.
     """
 
     fitted_model = model.fit(train_data)

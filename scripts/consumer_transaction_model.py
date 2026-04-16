@@ -1,7 +1,6 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
-import sys
 
 from pyspark.sql import functions as F, SparkSession
 from pyspark.sql.window import Window
@@ -19,7 +18,7 @@ def feature_visualisation(df_pandas, plots):
     Create a list of plots for feature visualisation, including bar charts, scatter plot and histogram.
     """
     # Set up a big plot grid
-    fig, axes = plt.subplots(6, 3, figsize=(20, 20))  # 4x3 grid of subplots
+    fig, axes = plt.subplots(6, 3, figsize=(20, 20))  # 6x3 grid of subplots
     fig.tight_layout(pad=5.0)  # Adjust spacing between plots
 
     for i, (plot_title, (feature, plot_type)) in enumerate(plots.items()):
@@ -45,6 +44,13 @@ def feature_visualisation(df_pandas, plots):
     plt.show()
     
 def assemble_data(data, predictors):
+    """
+    Prepares consumer transaction data for modelling: applies log transformation to
+    dollar value and income proportion columns, normalises key numeric features via
+    StandardScaler, encodes temporal fields, and assembles all predictors into a single
+    'features' vector using the provided predictor list.
+    Returns (assembled_data, assembler).
+    """
     # Apply log transformation to dollar value related columns
     cols_to_log = ['dollar_value', 'average_dollar_value', 'min_dollar_value',
                 'max_dollar_value', 'stddev_dollar_value',
